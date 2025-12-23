@@ -11,6 +11,7 @@ import { translations } from '../../utils/appUtils';
 import { extractTextFromNode } from '../../utils/uiUtils';
 import { getRehypePlugins, remarkPlugins } from '../../utils/markdownConfig';
 import { InlineCode } from './code-block/InlineCode';
+import { useCopyToClipboard } from '../../hooks/useCopyToClipboard';
 
 interface MarkdownRendererProps {
   content: string;
@@ -26,6 +27,64 @@ interface MarkdownRendererProps {
   onOpenSidePanel: (content: SideViewContent) => void;
 }
 
+const extractTexFromReactTree = (node: React.ReactNode): string | null => {
+  if (!node) return null;
+  if (typeof node === 'string' || typeof node === 'number') return null;
+
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const tex = extractTexFromReactTree(child);
+      if (tex !== null) return tex;
+    }
+    return null;
+  }
+
+  if (!React.isValidElement(node)) return null;
+
+  const el = node as React.ReactElement<any>;
+
+  if (
+    typeof el.type === 'string' &&
+    el.type.toLowerCase() === 'annotation' &&
+    typeof el.props?.encoding === 'string' &&
+    el.props.encoding.toLowerCase().startsWith('application/x-tex')
+  ) {
+    const text = extractTextFromNode(el.props.children).trim();
+    return text || null;
+  }
+
+  return extractTexFromReactTree(el.props.children);
+};
+
+const MathHoverSpan: React.FC<any & { latex?: string; isDisplay?: boolean }> = ({
+  latex,
+  isDisplay,
+  children,
+  className,
+  ...props
+}) => {
+  const { isCopied, copyToClipboard } = useCopyToClipboard(1500);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!latex) return;
+
+    const wrapped = isDisplay ? `$$${latex}$$` : `$${latex}$`;
+    copyToClipboard(wrapped);
+  };
+
+  return (
+    <span
+      {...props}
+      className={`${className || ''} amc-math-hover`}
+      onClick={handleClick}
+      title={latex ? 'Click to copy LaTeX' : undefined}
+    >
+      {children}
+      {isCopied && <span className="amc-math-copied-tooltip">Copied!</span>}
+    </span>
+  );
+};
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
   content,
   isLoading,
@@ -45,6 +104,23 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({
   const components = useMemo(() => ({
     code: (props: any) => {
         return <InlineCode {...props} />;
+    },
+    span: (props: any) => {
+      const className: string = props.className || '';
+
+      const isDisplayRoot = className.includes('katex-display');
+      const isInlineRoot =
+        className.includes('katex') &&
+        !className.includes('katex-display') &&
+        !className.includes('katex-mathml') &&
+        !className.includes('katex-html');
+
+      if (isDisplayRoot || isInlineRoot) {
+        const latex = extractTexFromReactTree(props.children) || undefined;
+        return <MathHoverSpan {...props} latex={latex} isDisplay={isDisplayRoot} />;
+      }
+
+      return <span {...props} />;
     },
     table: (props: any) => <TableBlock {...props} />,
     a: (props: any) => {
