@@ -487,6 +487,10 @@ html, body, #root {
   box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
 }
 
+.theme-onyx .markdown-body .amc-math-hover.katex:hover {
+  background-color: rgba(34, 197, 94, 0.14);
+}
+
 .markdown-body .amc-math-copied-tooltip {
   position: absolute;
   top: -1.25rem;
