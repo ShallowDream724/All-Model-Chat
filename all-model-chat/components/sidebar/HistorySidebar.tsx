@@ -110,7 +110,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = (props) => {
     >
       {isOpen ? (
         <div className="w-64 md:w-72 h-full flex flex-col min-w-[16rem] md:min-w-[18rem]">
-            <SidebarHeader isOpen={isOpen} onToggle={onToggle} t={t} />
+            <SidebarHeader isOpen={isOpen} onToggle={onToggle} onNewChat={onNewChat} t={t} />
             <SidebarActions 
                 onNewChat={onNewChat}
                 onAddNewGroup={onAddNewGroup}
