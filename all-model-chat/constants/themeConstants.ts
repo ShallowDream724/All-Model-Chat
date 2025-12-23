@@ -26,7 +26,7 @@ export const ONYX_THEME_COLORS: ThemeColors = {
   // Text
   textPrimary: '#f4f4f5', // Zinc 100 - High contrast text
   textSecondary: '#a1a1aa', // Zinc 400
-  textTertiary: '#52525b', // Zinc 600
+  textTertiary: '#71717a', // Zinc 500 (slightly brighter for readability)
   textAccent: '#ffffff',
   textDanger: '#fca5a5', // Light Red
   textLink: '#38bdf8', // Sky 400
