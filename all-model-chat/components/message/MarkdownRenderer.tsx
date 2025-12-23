@@ -65,7 +65,7 @@ const MathHoverSpan: React.FC<any & { latex?: string; isDisplay?: boolean }> = (
 }) => {
   const { isCopied, copyToClipboard } = useCopyToClipboard(1500);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!latex) return;
 
@@ -78,7 +78,8 @@ const MathHoverSpan: React.FC<any & { latex?: string; isDisplay?: boolean }> = (
     <span
       {...props}
       className={`${className || ''} amc-math-hover`}
-      onClick={handleClick}
+      onClick={isDisplay ? undefined : handleCopyClick}
+      onClickCapture={isDisplay ? handleCopyClick : undefined}
       title={latex ? 'Click to copy LaTeX' : undefined}
     >
       {children}
