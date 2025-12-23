@@ -484,7 +484,7 @@ html, body, #root {
 
 .theme-onyx .markdown-body .amc-math-hover:hover {
   background-color: rgba(34, 197, 94, 0.1);
-  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.5);
 }
 
 .theme-onyx .markdown-body .amc-math-hover.katex:hover {
