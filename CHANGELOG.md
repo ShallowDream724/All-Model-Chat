@@ -13,6 +13,7 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ### Fixed
 - Clicking the top-left logo starts a new chat instead of opening an external page.
+- Display math copy now reliably produces a multi-line `$$ ... $$` block.
 
 ### Changed
 - Updated `AppLogo` to AMC x Shallow Dream combined logo.
