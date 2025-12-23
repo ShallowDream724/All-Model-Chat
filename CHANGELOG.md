@@ -17,5 +17,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 ### Changed
 - Updated `AppLogo` to AMC x Shallow Dream combined logo.
 
+### Added
+- Click-to-copy LaTeX for rendered math formulas (KaTeX).
+
 ## [1.8.2] - 2025-12-18
 - Upstream baseline (commit `f23cd437895cf95c88a0f471f0b7b676f3bc304b`).

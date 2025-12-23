@@ -468,3 +468,35 @@ html, body, #root {
 .is-exporting-png *::-webkit-scrollbar {
     display: none !important;
 }
+
+/* Math formula hover + click-to-copy (KaTeX) */
+.markdown-body .amc-math-hover {
+  position: relative;
+  border-radius: 0.375rem;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.markdown-body .amc-math-hover:hover {
+  background-color: #f4fef8;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.15);
+}
+
+.theme-onyx .markdown-body .amc-math-hover:hover {
+  background-color: rgba(34, 197, 94, 0.08);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
+}
+
+.markdown-body .amc-math-copied-tooltip {
+  position: absolute;
+  top: -1.25rem;
+  right: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+  border-radius: 9999px;
+  background-color: rgba(16, 185, 129, 0.95);
+  color: white;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
