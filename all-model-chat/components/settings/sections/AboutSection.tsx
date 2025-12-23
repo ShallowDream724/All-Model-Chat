@@ -46,7 +46,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ t }) => {
       <div className="relative group">
         <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
         <div className="relative">
-            <AppLogo className="w-48 h-auto drop-shadow-2xl" />
+            <AppLogo className="w-56 h-auto drop-shadow-2xl" />
         </div>
       </div>
 

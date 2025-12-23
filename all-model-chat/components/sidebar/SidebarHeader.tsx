@@ -19,7 +19,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ onToggle, onNewCha
       className="flex items-center gap-2 pl-2 hover:opacity-80 transition-opacity bg-transparent border-0"
       aria-label={t('headerNewChat_aria')}
     >
-      <AppLogo className="h-8 w-auto" />
+      <AppLogo className="h-12 w-auto mt-4" />
     </button>
     <button onClick={onToggle} className="p-2 text-[var(--theme-icon-history)] hover:bg-[var(--theme-bg-tertiary)] rounded-md" aria-label={isOpen ? t('historySidebarClose') : t('historySidebarOpen')}>
       <IconSidebarToggle size={20} strokeWidth={2} />
