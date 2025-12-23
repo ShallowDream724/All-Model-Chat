@@ -69,7 +69,8 @@ const MathHoverSpan: React.FC<any & { latex?: string; isDisplay?: boolean }> = (
     e.stopPropagation();
     if (!latex) return;
 
-    const wrapped = isDisplay ? `$$${latex}$$` : `$${latex}$`;
+    const normalized = latex.trim();
+    const wrapped = isDisplay ? `$$\n${normalized}\n$$` : `$${normalized}$`;
     copyToClipboard(wrapped);
   };
 
