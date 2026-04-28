@@ -4,6 +4,8 @@ import { ModelOption } from '../../../../types';
 import { getModelIcon } from '../../../shared/ModelPicker';
 import { useI18n } from '../../../../contexts/I18nContext';
 import { buildModelCatalog, filterModelCatalog, type ModelCatalogCategory } from '../../../../utils/modelCatalog';
+import { getModelCapabilities } from '../../../../utils/modelHelpers';
+import { LiveModelDirectWarningIcon } from '../../../shared/LiveModelDirectWarningIcon';
 
 interface ModelListViewProps {
   availableModels: ModelOption[];
@@ -44,6 +46,7 @@ export const ModelListView: React.FC<ModelListViewProps> = ({ availableModels, s
           <div key={section.key} className="space-y-1">
             {section.entries.map((entry) => {
               const isSelected = entry.id === selectedModelId;
+              const isLiveModel = getModelCapabilities(entry.id).isNativeAudioModel;
 
               return (
                 <button
@@ -70,6 +73,12 @@ export const ModelListView: React.FC<ModelListViewProps> = ({ availableModels, s
                       <span className={`font-medium truncate ${isSelected ? 'text-[var(--theme-text-link)]' : ''}`}>
                         {entry.name}
                       </span>
+                      {isLiveModel && (
+                        <LiveModelDirectWarningIcon
+                          label={t('modelPickerLiveDirectBadge')}
+                          title={t('modelPickerLiveDirectHint')}
+                        />
+                      )}
                     </div>
                     <div className="text-[10px] text-[var(--theme-text-tertiary)] font-mono truncate opacity-70">
                       {entry.id}

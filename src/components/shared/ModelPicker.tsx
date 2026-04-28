@@ -20,6 +20,7 @@ import {
   type ModelCatalogCategory,
   type ModelCatalogEntry,
 } from '../../utils/modelCatalog';
+import { LiveModelDirectWarningIcon } from './LiveModelDirectWarningIcon';
 
 const MODEL_ICON_SIZE = 18;
 
@@ -186,6 +187,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                     <div key={section.key} className="space-y-1">
                       {section.entries.map((entry) => {
                         const isSelected = entry.id === selectedId;
+                        const isLiveModel = getModelCapabilities(entry.id).isNativeAudioModel;
 
                         return (
                           <button
@@ -210,6 +212,12 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({
                                   >
                                     {entry.name}
                                   </span>
+                                  {isLiveModel && (
+                                    <LiveModelDirectWarningIcon
+                                      label={t('modelPickerLiveDirectBadge')}
+                                      title={t('modelPickerLiveDirectHint')}
+                                    />
+                                  )}
                                 </div>
                                 <div className="mt-1 truncate font-mono text-[10px] text-[var(--theme-text-tertiary)]">
                                   {entry.id}

@@ -157,11 +157,13 @@ The Docker deployment contains two services:
 - `api`: Node service for `/api/gemini/*`.
 
 ```bash
-npm run build
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY
+docker network create ai_net 2>/dev/null || true
 docker compose up -d --build
 ```
 
-The default URL is `http://localhost:8080`. Stop it with:
+By default, Compose does not publish a host port. The `web` container is exposed only on the external Docker network `ai_net`. If Nginx Proxy Manager is also attached to `ai_net`, proxy to `http://amc-web:80`. Stop it with:
 
 ```bash
 docker compose down
@@ -169,13 +171,14 @@ docker compose down
 
 Notes:
 
-- Docker defaults to BYOK for personal deployments. After startup, enter your Gemini API key in **Settings -> API Configuration** to use both regular chat and Live API. You do not need to set `GEMINI_API_KEY` in `.env` or `docker-compose.yml`.
-- The `web` image packages the already built local `dist/` directory.
-- After frontend changes, run `npm run build` before rebuilding the Docker services.
+- Docker defaults to server-managed credentials. Set `GEMINI_API_KEY` in `.env`; regular Gemini HTTP requests and Files API requests go to `/api/gemini` first, then the `api` container forwards them to Google.
+- The `web` image runs the frontend production build during Docker build and does not depend on a host-generated `dist/` directory.
+- Docker Compose uses the external `ai_net` network. Make sure it exists and that your reverse proxy container is attached to it.
+- Live API still connects directly from the browser to Google and does not use `/api/gemini`.
 
 > Security note
 >
-> The `web + api` proxy setup is intended for trusted self-hosted deployments. The default BYOK mode uses the API key stored in the browser settings for requests, and it is not a complete public multi-user API gateway. Add authentication, quotas, rate limiting, abuse protection, audit logging, and tenant isolation before exposing it publicly.
+> The `web + api` proxy setup is intended for trusted self-hosted deployments. Server-managed credentials keep regular Gemini requests and Files API requests off user IPs and keep the server key out of the browser. Add authentication, quotas, rate limiting, abuse protection, audit logging, and tenant isolation before exposing it to untrusted public users.
 
 ### Runtime Configuration and Environment Variables
 
@@ -185,14 +188,17 @@ Notes:
 | `PORT` | Port used by the API service | Server only | `3001` |
 | `GEMINI_API_BASE` | Upstream Gemini API base URL | Server only | `https://generativelanguage.googleapis.com` |
 | `ALLOWED_ORIGINS` | Comma-separated CORS allowlist for cross-origin deployments | Server only | Empty |
-| `RUNTIME_SERVER_MANAGED_API` | Enables server-managed API mode by default in the frontend | Public runtime config | `false` |
+| `PROXY_ACCESS_LOG` | Writes one concise access log line per `/api/gemini` request | Server only | `true` |
+| `RUNTIME_SERVER_MANAGED_API` | Enables server-managed API mode by default in the frontend | Public runtime config | `true` |
 | `RUNTIME_USE_CUSTOM_API_CONFIG` | Enables custom API configuration by default | Public runtime config | `true` |
 | `RUNTIME_USE_API_PROXY` | Enables API proxy mode by default | Public runtime config | `true` |
 | `RUNTIME_API_PROXY_URL` | Default Gemini proxy URL for the frontend | Public runtime config | `/api/gemini` |
 
-The `RUNTIME_*` values are written into `runtime-config.js` at container startup and are readable by the browser. Only put public configuration there. Docker defaults to BYOK: after you enter an API key in Settings, regular Gemini proxy requests use the browser-provided key, and Live API uses the browser-local key directly to open the official Live WebSocket connection. AMC no longer mints a backend Live token.
+The `RUNTIME_*` values are written into `runtime-config.js` at container startup and are readable by the browser. Only put public configuration there. `GEMINI_API_KEY` is configured only in the `api` container and is not written into frontend runtime config.
 
-If you want server-managed credentials for regular Gemini requests, set `GEMINI_API_KEY` and `RUNTIME_SERVER_MANAGED_API=true`. Live API still requires an API key available in the browser. A browser-local key is suitable for personal or trusted deployments, but it is not a server secret: scripts running in the same browser context, extensions, XSS, or device compromise may still read it.
+The frontend defaults to the same-origin backend endpoint `/api/gemini/*`; regular Gemini HTTP requests and Files API uploads are relayed there. Live API still connects directly from the browser to the official Live service, so the browser network must be able to reach Google directly.
+
+Use `docker compose logs -f --tail=50 api` to inspect concise proxy logs such as `[gemini-proxy] POST /v1beta/models/... -> 200 1234ms`. Logs do not include API keys or request bodies.
 
 ### Option 3: Cloudflare Pages + Standalone API
 

@@ -25,22 +25,41 @@ describe('SidebarHeader', () => {
 
   it('renders the sidebar logo from the PNG asset', () => {
     act(() => {
-      root.render(<SidebarHeader isOpen={true} onToggle={vi.fn()} t={t} themeId="pearl" />);
+      root.render(<SidebarHeader isOpen={true} onToggle={vi.fn()} onNewChat={vi.fn()} t={t} themeId="pearl" />);
     });
 
-    const logo = container.querySelector('a[href="https://all-model-chat.pages.dev/"] img[alt="AMC WebUI"]');
+    const logoButton = container.querySelector('button[aria-label="headerNewChat_aria"]');
+    const logo = logoButton?.querySelector('img[alt="AMC WebUI"]');
 
     expect(logo?.getAttribute('src')).toBe('/sidebar-logo.png');
-    expect(container.querySelector('a[href="https://all-model-chat.pages.dev/"] svg')).toBeNull();
+    expect(logoButton?.getAttribute('type')).toBe('button');
+    expect(container.querySelector('a')).toBeNull();
+    expect(logoButton?.querySelector('svg')).toBeNull();
   });
 
   it('uses the dark sidebar logo for the onyx theme', () => {
     act(() => {
-      root.render(<SidebarHeader isOpen={true} onToggle={vi.fn()} t={t} themeId="onyx" />);
+      root.render(<SidebarHeader isOpen={true} onToggle={vi.fn()} onNewChat={vi.fn()} t={t} themeId="onyx" />);
     });
 
-    const logo = container.querySelector('a[href="https://all-model-chat.pages.dev/"] img[alt="AMC WebUI"]');
+    const logo = container.querySelector('button[aria-label="headerNewChat_aria"] img[alt="AMC WebUI"]');
 
     expect(logo?.getAttribute('src')).toBe('/sidebar-logo-dark.png');
+  });
+
+  it('starts a new chat from the logo without navigating away', () => {
+    const onNewChat = vi.fn();
+
+    act(() => {
+      root.render(<SidebarHeader isOpen={true} onToggle={vi.fn()} onNewChat={onNewChat} t={t} themeId="pearl" />);
+    });
+
+    const logoButton = container.querySelector('button[aria-label="headerNewChat_aria"]');
+
+    act(() => {
+      logoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onNewChat).toHaveBeenCalledTimes(1);
   });
 });

@@ -222,7 +222,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = (props) => {
             : 'opacity-100 pointer-events-auto md:opacity-0 md:pointer-events-none'
         }`}
       >
-        <SidebarHeader isOpen={isOpen} onToggle={onToggle} t={t} themeId={themeId} />
+        <SidebarHeader isOpen={isOpen} onToggle={onToggle} onNewChat={onNewChat} t={t} themeId={themeId} />
         <SidebarActions
           onNewChat={onNewChat}
           onCloseSidebar={onAutoClose}

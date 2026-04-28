@@ -240,6 +240,85 @@ describe('createServer', () => {
     expect(init.headers.get('x-goog-api-key')).toBe('browser-key');
   });
 
+  it('prefers the server Gemini API key over a browser-provided key', async () => {
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      return new Response('proxied', { status: 202 });
+    });
+    const app = createServer(
+      {
+        geminiApiBase: 'https://example.test',
+        geminiApiKey: 'server-key',
+      },
+      { fetchImpl },
+    );
+    const started = await startHttpServer(app);
+    cleanupCallbacks.push(started.close);
+
+    const response = await fetch(`${started.baseUrl}/api/gemini/v1beta/models`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-goog-api-key': 'browser-key',
+      },
+      body: JSON.stringify({ prompt: 'hello' }),
+    });
+
+    expect(response.status).toBe(202);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    const init = fetchImpl.mock.calls[0][1];
+    if (!init?.headers || !(init.headers instanceof Headers)) {
+      throw new Error('Expected proxy request headers to be a Headers instance');
+    }
+
+    expect(init.headers.get('x-goog-api-key')).toBe('server-key');
+  });
+
+  it('writes concise proxy access logs without keys or request bodies', async () => {
+    const logSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      return new Response('proxied', { status: 202 });
+    });
+    const app = createServer(
+      {
+        geminiApiBase: 'https://example.test',
+        geminiApiKey: 'server-key',
+        proxyAccessLog: true,
+      },
+      { fetchImpl },
+    );
+    const started = await startHttpServer(app);
+    cleanupCallbacks.push(started.close);
+
+    try {
+      const response = await fetch(
+        `${started.baseUrl}/api/gemini/v1beta/models/gemini-3-flash-preview:generateContent?key=query-key`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-goog-api-key': 'browser-key',
+          },
+          body: JSON.stringify({ prompt: 'prompt-secret' }),
+        },
+      );
+      await response.text();
+
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      const logLine = String(logSpy.mock.calls[0][0]);
+
+      expect(logLine).toMatch(
+        /^\[gemini-proxy\] POST \/v1beta\/models\/gemini-3-flash-preview:generateContent -> 202 \d+ms$/,
+      );
+      expect(logLine).not.toContain('server-key');
+      expect(logLine).not.toContain('browser-key');
+      expect(logLine).not.toContain('query-key');
+      expect(logLine).not.toContain('prompt-secret');
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
   it('returns a 502 JSON error when Gemini upstream fetch fails', async () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error('network down');

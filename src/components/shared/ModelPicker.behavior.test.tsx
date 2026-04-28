@@ -56,6 +56,7 @@ describe('ModelPicker behavior', () => {
     container.remove();
     document.body.innerHTML = '';
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it('renders a plain model list without search, badges, or section labels', () => {
@@ -81,5 +82,74 @@ describe('ModelPicker behavior', () => {
     expect(container.textContent).not.toContain('Pinned');
     expect(container.textContent).not.toContain('Speech');
     expect(container.textContent).toContain('Gemini 3.1 Flash TTS Preview');
+  });
+
+  it('marks Live models with a compact browser-direct warning', () => {
+    act(() => {
+      root.render(
+        renderPicker({
+          models: [
+            { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
+            { id: 'gemini-3.1-flash-live-preview', name: 'Gemini 3.1 Flash Live Preview' },
+          ],
+          selectedId: 'gemini-3-flash-preview',
+        }),
+      );
+    });
+
+    act(() => {
+      container
+        .querySelector('[data-testid="model-picker-trigger"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const warningIcon = container.querySelector('[aria-label="Browser direct"]');
+
+    expect(warningIcon).not.toBeNull();
+    expect(warningIcon?.getAttribute('title')).toBeNull();
+    expect(container.textContent).not.toContain('Live bypasses the server proxy');
+  });
+
+  it('shows the Live warning tooltip quickly on hover and hides it on leave', () => {
+    vi.useFakeTimers();
+
+    act(() => {
+      root.render(
+        renderPicker({
+          models: [
+            { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
+            { id: 'gemini-3.1-flash-live-preview', name: 'Gemini 3.1 Flash Live Preview' },
+          ],
+          selectedId: 'gemini-3-flash-preview',
+        }),
+      );
+    });
+
+    act(() => {
+      container
+        .querySelector('[data-testid="model-picker-trigger"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const warningIcon = container.querySelector('[aria-label="Browser direct"]');
+    expect(warningIcon).not.toBeNull();
+
+    act(() => {
+      warningIcon?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      vi.advanceTimersByTime(119);
+    });
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(document.body.querySelector('[role="tooltip"]')?.textContent).toContain('Live bypasses the server proxy');
+
+    act(() => {
+      warningIcon?.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
+    });
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull();
+
+    vi.useRealTimers();
   });
 });

@@ -34,6 +34,17 @@ export const commonTranslations = {
   modelPickerBadgeGemma: { en: 'Gemma', zh: 'Gemma' },
   modelPickerBadgeFlash: { en: 'Flash', zh: 'Flash' },
   modelPickerBadgePro: { en: 'Pro', zh: 'Pro' },
+  modelPickerLiveDirectBadge: { en: 'Browser direct', zh: '浏览器直连' },
+  modelPickerLiveDirectHint: {
+    en: 'Live bypasses the server proxy. Use a home network that can reach Google directly.',
+    zh: 'Live 不走服务器中转，请用能直连 Google 的家宽。',
+  },
+  liveModelWarningTitle: { en: 'Live connects directly to Google', zh: 'Live 会直连 Google' },
+  liveModelWarningMessage: {
+    en: 'This model bypasses the server proxy and connects to Google Live from the current browser. Use it only on a network that can reach Google directly, preferably trusted home broadband. Avoid office, datacenter, and public networks. Continue?',
+    zh: '这个模型不会走我的服务器中转，会从当前浏览器直接连接 Google Live。请只在能直连 Google 的家宽或可靠个人网络下使用，不要用单位网、机房网络或公共网络。要继续选择这个模型吗？',
+  },
+  liveModelWarningConfirm: { en: 'I understand, continue', zh: '我明白，继续' },
   refresh: { en: 'Refresh', zh: '刷新' },
   canvasHelperToggle: { en: 'Toggle Canvas', zh: '切换 Canvas' },
   pipEnter: { en: 'Enter Picture-in-Picture', zh: '进入画中画' },

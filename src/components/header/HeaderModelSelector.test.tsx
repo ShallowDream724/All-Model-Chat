@@ -233,4 +233,50 @@ describe('HeaderModelSelector', () => {
     expect(container.querySelector('button[aria-label="headerThinkingToggleAria"]')).toBeNull();
     expect(container.querySelector('button[aria-label="headerReasoningToggleAria"]')).toBeNull();
   });
+
+  it('requires confirmation before selecting a Live model', async () => {
+    const onSelectModel = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <HeaderModelSelector
+          currentModelName="Gemini 3 Flash Preview"
+          availableModels={[
+            { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
+            { id: 'gemini-3.1-flash-live-preview', name: 'Gemini 3.1 Flash Live Preview' },
+          ]}
+          selectedModelId="gemini-3-flash-preview"
+          onSelectModel={onSelectModel}
+          isSwitchingModel={false}
+          isLoading={false}
+          thinkingLevel="HIGH"
+          onSetThinkingLevel={vi.fn()}
+          showThoughts={true}
+          onToggleGemmaReasoning={vi.fn()}
+        />,
+      );
+    });
+
+    const triggerButton = container.querySelector('button[aria-haspopup="listbox"]');
+    await act(async () => {
+      triggerButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const liveOption = container.querySelector('[id="model-picker-option-gemini-3.1-flash-live-preview"]');
+    await act(async () => {
+      liveOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onSelectModel).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain('liveModelWarningTitle');
+
+    const confirmButton = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent === 'liveModelWarningConfirm',
+    );
+    await act(async () => {
+      confirmButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onSelectModel).toHaveBeenCalledWith('gemini-3.1-flash-live-preview');
+  });
 });

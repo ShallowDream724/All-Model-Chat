@@ -5,11 +5,14 @@ services:
       dockerfile: Dockerfile.api
     environment:
       PORT: 3001
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Set GEMINI_API_KEY in .env before deploying}
       GEMINI_API_BASE: ${GEMINI_API_BASE:-https://generativelanguage.googleapis.com}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      PROXY_ACCESS_LOG: ${PROXY_ACCESS_LOG:-true}
     expose:
       - "3001"
+    networks:
+      - ai_net
     restart: unless-stopped
 
   web:
@@ -19,10 +22,18 @@ services:
     depends_on:
       - api
     environment:
-      RUNTIME_SERVER_MANAGED_API: ${RUNTIME_SERVER_MANAGED_API:-false}
+      RUNTIME_SERVER_MANAGED_API: ${RUNTIME_SERVER_MANAGED_API:-true}
       RUNTIME_USE_CUSTOM_API_CONFIG: ${RUNTIME_USE_CUSTOM_API_CONFIG:-true}
       RUNTIME_USE_API_PROXY: ${RUNTIME_USE_API_PROXY:-true}
       RUNTIME_API_PROXY_URL: ${RUNTIME_API_PROXY_URL:-/api/gemini}
-    ports:
-      - "${WEB_PORT:-8080}:80"
+    expose:
+      - "80"
+    networks:
+      ai_net:
+        aliases:
+          - amc-web
     restart: unless-stopped
+
+networks:
+  ai_net:
+    external: true

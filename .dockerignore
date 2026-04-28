@@ -1,0 +1,14 @@
+.git
+.ace-tool
+node_modules
+dist
+build
+.vite
+coverage
+playwright-report
+test-results
+.env
+.env.local
+.env.*.local
+*.log
+*.stackdump

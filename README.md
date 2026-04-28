@@ -167,21 +167,24 @@ GEMINI_API_KEY=your_api_key_here
 
 ```bash
 # 在仓库根目录
-npm run build
+cp .env.example .env
+# 编辑 .env，填入 GEMINI_API_KEY
+docker network create ai_net 2>/dev/null || true
 docker compose up -d --build
 ```
 
-默认访问 `http://localhost:8080`。如需关闭后台运行可执行 `docker compose down`。
+默认不向宿主机发布端口，只把 `web` 容器暴露到外部 Docker 网络 `ai_net`。如果 Nginx Proxy Manager 也在 `ai_net` 中，反代目标填写 `http://amc-web:80`。如需关闭后台运行可执行 `docker compose down`。
 
 说明：
-- Docker 默认是 BYOK 自用模式：启动后在 **设置 -> API 配置** 填入 Gemini API Key 即可使用普通聊天与 Live API，不需要在 `.env` 或 `docker-compose.yml` 里配置 `GEMINI_API_KEY`。
-- `web` 镜像默认直接打包宿主机已生成的 `dist/`，不再在容器内执行前端生产构建。
-- 修改前端代码后，请先重新执行 `npm run build`，再执行 `docker compose up -d --build`。
+- Docker 默认是服务端托管模式：必须在 `.env` 中配置 `GEMINI_API_KEY`，普通 Gemini HTTP 请求和 Files API 请求默认先进入 `/api/gemini`，再由 `api` 容器代发到 Google。
+- `web` 镜像会在 Docker 构建阶段执行前端生产构建，不依赖宿主机已有的 `dist/`。
+- Docker Compose 使用外部网络 `ai_net`，部署前请确认该网络存在，且你的反向代理容器也连接到这个网络。
+- Live API 仍然是浏览器直连 Google，不走 `/api/gemini`。
 
 > ⚠️ 安全边界说明
 > 当前 `web + api` 代理方案定位为 **受信任/自托管环境**（trusted self-hosted deployment）。
-> 默认 BYOK 模式会使用浏览器设置里的 API Key 发起请求；它**本身并不足以**作为公开互联网下“无鉴权多用户 API 网关”。
-> 若要对公网开放，请额外引入鉴权、配额/限流、滥用防护、审计与租户隔离等能力。
+> 服务端托管密钥可避免普通 Gemini 请求和 Files API 请求从用户 IP 直连 Google，也避免把服务器密钥暴露给浏览器。
+> 若要对公网开放给陌生用户，请额外引入鉴权、配额/限流、滥用防护、审计与租户隔离等能力。
 
 ### 运行时配置与环境变量
 
@@ -193,17 +196,18 @@ docker compose up -d --build
 | `PORT` | `api` 服务监听端口 | 仅服务端 | `3001` |
 | `GEMINI_API_BASE` | Gemini 上游地址（代理目标） | 仅服务端 | `https://generativelanguage.googleapis.com` |
 | `ALLOWED_ORIGINS` | 逗号分隔 CORS 白名单（跨域部署时使用） | 仅服务端 | 空 |
-| `RUNTIME_SERVER_MANAGED_API` | 前端默认启用服务端托管 API | **公开运行时配置** | `false` |
+| `PROXY_ACCESS_LOG` | 为每个 `/api/gemini` 请求输出一行代理访问日志 | 仅服务端 | `true` |
+| `RUNTIME_SERVER_MANAGED_API` | 前端默认启用服务端托管 API | **公开运行时配置** | `true` |
 | `RUNTIME_USE_CUSTOM_API_CONFIG` | 前端默认启用“自定义 API 配置” | 公开运行时配置 | `true` |
 | `RUNTIME_USE_API_PROXY` | 前端默认启用 API 代理 | 公开运行时配置 | `true` |
 | `RUNTIME_API_PROXY_URL` | 前端默认 Gemini 代理地址 | 公开运行时配置 | `/api/gemini` |
 
 说明：
 - 上述 `RUNTIME_*` 会在容器启动时写入 `runtime-config.js`，可被浏览器读取，因此只能放“可公开”信息。
-- 默认 BYOK 模式只需要在设置界面填写 API Key：普通 Gemini 代理会使用浏览器请求携带的 key；Live API 会使用浏览器本地 key 直接建立官方 Live WebSocket 连接，不再经过 AMC 后端换取临时 token。
-- 如需服务端统一托管普通 Gemini 请求的 key，可配置 `GEMINI_API_KEY` 并将 `RUNTIME_SERVER_MANAGED_API=true`；Live API 仍需要浏览器中可用的 API Key。
-- 浏览器本地 key 适合自用/可信部署。它不会因为“保存在本地”而变成服务器密钥，同一浏览器上下文中的脚本、扩展、XSS 或设备风险仍可能读取它。
-- 前端在部署时默认只依赖后端端点：`/api/gemini/*`；Live API 从浏览器直连官方 Live 服务。
+- `GEMINI_API_KEY` 只配置在 `api` 容器中，不会写入前端运行时配置。
+- 前端默认只依赖同源后端端点：`/api/gemini/*`；普通 Gemini HTTP 请求和 Files API 上传都会经由该端点中转。
+- 可用 `docker compose logs -f --tail=50 api` 查看简明代理日志，例如 `[gemini-proxy] POST /v1beta/models/... -> 200 1234ms`；日志不包含 API Key 或请求正文。
+- Live API 从浏览器直连官方 Live 服务，仍需要浏览器所在网络能直接访问 Google。
 
 ### 方式三：Cloudflare Pages（静态前端）+ 独立 API 服务
 

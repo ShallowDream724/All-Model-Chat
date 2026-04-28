@@ -30,10 +30,11 @@ interface CreateServerDependencies {
 }
 
 type CreateServerConfig = Pick<ApiServerConfig, 'geminiApiBase' | 'geminiApiKey'> &
-  Partial<Pick<ApiServerConfig, 'allowedOrigins'>>;
+  Partial<Pick<ApiServerConfig, 'allowedOrigins' | 'proxyAccessLog'>>;
 
 interface ResolvedServerConfig extends CreateServerConfig {
   allowedOrigins: string[];
+  proxyAccessLog: boolean;
 }
 
 function getCorsHeaders(request: IncomingMessage, allowedOrigins: string[]): Record<string, string> {
@@ -154,12 +155,47 @@ function buildProxyResponseHeaders(
   return responseHeaders;
 }
 
+function attachProxyAccessLog(
+  request: IncomingMessage,
+  response: ServerResponse,
+  config: ResolvedServerConfig,
+  upstreamPath: string,
+): void {
+  if (!config.proxyAccessLog) {
+    return;
+  }
+
+  const method = request.method || 'GET';
+  const startedAt = Date.now();
+  let hasLogged = false;
+
+  const logOnce = (status: string | number) => {
+    if (hasLogged) {
+      return;
+    }
+
+    hasLogged = true;
+    console.info(`[gemini-proxy] ${method} ${upstreamPath} -> ${status} ${Date.now() - startedAt}ms`);
+  };
+
+  response.once('finish', () => logOnce(response.statusCode || 0));
+  response.once('close', () => {
+    if (!response.writableEnded) {
+      logOnce('closed');
+    }
+  });
+}
+
 async function proxyGeminiRequest(
   request: IncomingMessage,
   response: ServerResponse,
   config: ResolvedServerConfig,
   fetchImpl: typeof fetch,
 ): Promise<void> {
+  const requestUrl = new URL(request.url || '/', 'http://localhost');
+  const upstreamPath = requestUrl.pathname.slice(GEMINI_PROXY_PREFIX.length) || '/';
+  attachProxyAccessLog(request, response, config, upstreamPath);
+
   const apiKeyForProxy = resolveRequestApiKey(request, config.geminiApiKey);
 
   if (!apiKeyForProxy) {
@@ -167,8 +203,6 @@ async function proxyGeminiRequest(
     return;
   }
 
-  const requestUrl = new URL(request.url || '/', 'http://localhost');
-  const upstreamPath = requestUrl.pathname.slice(GEMINI_PROXY_PREFIX.length) || '/';
   const targetBase = config.geminiApiBase.replace(/\/$/, '');
   const upstreamUrl = `${targetBase}${upstreamPath}${requestUrl.search}`;
   const method = request.method || 'GET';
@@ -240,6 +274,7 @@ export function createServer(config: CreateServerConfig, dependencies: CreateSer
   const resolvedConfig: ResolvedServerConfig = {
     ...config,
     allowedOrigins: config.allowedOrigins ?? [],
+    proxyAccessLog: config.proxyAccessLog ?? false,
   };
 
   const fetchImpl = dependencies.fetchImpl ?? fetch;

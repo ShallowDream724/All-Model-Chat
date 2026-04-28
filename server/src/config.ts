@@ -3,6 +3,7 @@ export interface ApiServerConfig {
   geminiApiBase: string;
   geminiApiKey?: string;
   allowedOrigins: string[];
+  proxyAccessLog: boolean;
 }
 
 interface EnvLike {
@@ -36,11 +37,20 @@ function parseAllowedOrigins(rawOrigins: string | undefined): string[] {
     .filter((origin) => origin.length > 0);
 }
 
+function parseBoolean(rawValue: string | undefined, fallback: boolean): boolean {
+  if (!rawValue) {
+    return fallback;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(rawValue.trim().toLowerCase());
+}
+
 export function loadConfig(env: EnvLike = process.env): ApiServerConfig {
   return {
     port: parsePort(env.PORT),
     geminiApiBase: env.GEMINI_API_BASE?.trim() || DEFAULT_GEMINI_API_BASE,
     geminiApiKey: env.GEMINI_API_KEY?.trim() || undefined,
     allowedOrigins: parseAllowedOrigins(env.ALLOWED_ORIGINS),
+    proxyAccessLog: parseBoolean(env.PROXY_ACCESS_LOG, true),
   };
 }

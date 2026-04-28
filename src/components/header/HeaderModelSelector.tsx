@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Zap } from 'lucide-react';
 import { ModelOption } from '../../types';
 import { useI18n } from '../../contexts/I18nContext';
 import { GoogleSpinner } from '../icons/GoogleSpinner';
 import { ModelPicker } from '../shared/ModelPicker';
 import { getModelCapabilities } from '../../utils/modelHelpers';
+import { LiveModelWarningModal } from '../modals/LiveModelWarningModal';
 
 interface HeaderModelSelectorProps {
   currentModelName?: string;
@@ -33,6 +34,7 @@ export const HeaderModelSelector: React.FC<HeaderModelSelectorProps> = ({
 }) => {
   const { t } = useI18n();
   const displayModelName = currentModelName;
+  const [pendingLiveModelId, setPendingLiveModelId] = useState<string | null>(null);
 
   const abbreviatedModelName = useMemo(() => {
     if (!displayModelName) return '';
@@ -71,58 +73,87 @@ export const HeaderModelSelector: React.FC<HeaderModelSelectorProps> = ({
       ? t(targetFastLevel === 'MINIMAL' ? 'headerThinkingMinimalFastTitle' : 'headerThinkingLowFastTitle')
       : t('headerThinkingHighTitle');
   const thinkingToggleAriaLabel = isGemmaModel ? t('headerReasoningToggleAria') : t('headerThinkingToggleAria');
+  const pendingLiveModel = availableModels.find((model) => model.id === pendingLiveModelId);
+
+  const handleSelectModel = useCallback(
+    (modelId: string) => {
+      if (modelId !== selectedModelId && getModelCapabilities(modelId).isNativeAudioModel) {
+        setPendingLiveModelId(modelId);
+        return;
+      }
+
+      onSelectModel(modelId);
+    },
+    [onSelectModel, selectedModelId],
+  );
+
+  const handleConfirmLiveModel = useCallback(() => {
+    if (pendingLiveModelId) {
+      onSelectModel(pendingLiveModelId);
+    }
+    setPendingLiveModelId(null);
+  }, [onSelectModel, pendingLiveModelId]);
 
   return (
-    <ModelPicker
-      models={availableModels}
-      selectedId={selectedModelId}
-      onSelect={onSelectModel}
-      t={t}
-      dropdownClassName="w-[calc(100vw-2rem)] max-w-[320px] sm:w-[320px] sm:max-w-none max-h-96"
-      renderTrigger={({ isOpen, setIsOpen }) => (
-        <div className="relative flex items-center gap-1">
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            disabled={isSelectorDisabled}
-            className={`min-h-9 flex items-center gap-2 rounded-xl px-2 sm:px-3 bg-transparent hover:bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] font-medium text-base transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--theme-bg-primary)] focus-visible:ring-[var(--theme-border-focus)] disabled:opacity-70 disabled:cursor-not-allowed border border-transparent hover:border-[var(--theme-border-secondary)] active:bg-[var(--theme-bg-tertiary)] ${isSwitchingModel ? 'animate-pulse' : ''}`}
-            title={`${t('headerModelSelectorTooltip_current')}: ${displayModelName}. ${t('headerModelSelectorTooltip_action')}`}
-            aria-label={`${t('headerModelAriaLabel_current')}: ${displayModelName}. ${t('headerModelAriaLabel_action')}`}
-            aria-haspopup="listbox"
-            aria-expanded={isOpen}
-          >
-            {!currentModelName && (
-              <div className="flex items-center justify-center">
-                <GoogleSpinner size={16} />
-              </div>
-            )}
-
-            <span className="truncate max-w-[180px] font-semibold sm:max-w-[220px]">{abbreviatedModelName}</span>
-          </button>
-
-          {/* Thinking Level Toggle */}
-          {supportsThinkingToggle && (
+    <>
+      <ModelPicker
+        models={availableModels}
+        selectedId={selectedModelId}
+        onSelect={handleSelectModel}
+        t={t}
+        dropdownClassName="w-[calc(100vw-2rem)] max-w-[320px] sm:w-[320px] sm:max-w-none max-h-96"
+        renderTrigger={({ isOpen, setIsOpen }) => (
+          <div className="relative flex items-center gap-1">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isGemmaModel) {
-                  onToggleGemmaReasoning();
-                  return;
-                }
-                onSetThinkingLevel(isFastState ? 'HIGH' : targetFastLevel);
-              }}
-              className={`h-9 w-9 flex items-center justify-center rounded-xl transition-all duration-200 ease-out focus:outline-none focus:visible:ring-2 focus:visible:ring-offset-2 focus:visible:ring-offset-[var(--theme-bg-primary)] focus-visible:ring-[var(--theme-border-focus)] ${
-                isFastState
-                  ? 'text-yellow-500 hover:bg-[var(--theme-bg-tertiary)]'
-                  : 'text-[var(--theme-text-tertiary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
-              }`}
-              title={thinkingToggleTitle}
-              aria-label={thinkingToggleAriaLabel}
+              onClick={() => setIsOpen(!isOpen)}
+              disabled={isSelectorDisabled}
+              className={`min-h-9 flex items-center gap-2 rounded-xl px-2 sm:px-3 bg-transparent hover:bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] font-medium text-base transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--theme-bg-primary)] focus-visible:ring-[var(--theme-border-focus)] disabled:opacity-70 disabled:cursor-not-allowed border border-transparent hover:border-[var(--theme-border-secondary)] active:bg-[var(--theme-bg-tertiary)] ${isSwitchingModel ? 'animate-pulse' : ''}`}
+              title={`${t('headerModelSelectorTooltip_current')}: ${displayModelName}. ${t('headerModelSelectorTooltip_action')}`}
+              aria-label={`${t('headerModelAriaLabel_current')}: ${displayModelName}. ${t('headerModelAriaLabel_action')}`}
+              aria-haspopup="listbox"
+              aria-expanded={isOpen}
             >
-              <Zap size={18} fill={isFastState ? 'currentColor' : 'none'} strokeWidth={2} />
+              {!currentModelName && (
+                <div className="flex items-center justify-center">
+                  <GoogleSpinner size={16} />
+                </div>
+              )}
+
+              <span className="truncate max-w-[180px] font-semibold sm:max-w-[220px]">{abbreviatedModelName}</span>
             </button>
-          )}
-        </div>
-      )}
-    />
+
+            {/* Thinking Level Toggle */}
+            {supportsThinkingToggle && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isGemmaModel) {
+                    onToggleGemmaReasoning();
+                    return;
+                  }
+                  onSetThinkingLevel(isFastState ? 'HIGH' : targetFastLevel);
+                }}
+                className={`h-9 w-9 flex items-center justify-center rounded-xl transition-all duration-200 ease-out focus:outline-none focus:visible:ring-2 focus:visible:ring-offset-2 focus:visible:ring-offset-[var(--theme-bg-primary)] focus-visible:ring-[var(--theme-border-focus)] ${
+                  isFastState
+                    ? 'text-yellow-500 hover:bg-[var(--theme-bg-tertiary)]'
+                    : 'text-[var(--theme-text-tertiary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
+                }`}
+                title={thinkingToggleTitle}
+                aria-label={thinkingToggleAriaLabel}
+              >
+                <Zap size={18} fill={isFastState ? 'currentColor' : 'none'} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+        )}
+      />
+
+      <LiveModelWarningModal
+        isOpen={pendingLiveModelId !== null}
+        modelName={pendingLiveModel?.name}
+        onClose={() => setPendingLiveModelId(null)}
+        onConfirm={handleConfirmLiveModel}
+      />
+    </>
   );
 };

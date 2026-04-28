@@ -12,6 +12,7 @@ import { MediaResolution } from '../../types/settings';
 import { getModelCapabilities } from '../../utils/modelHelpers';
 import { useI18n } from '../../contexts/I18nContext';
 import { SMALL_ICON_BUTTON_CLASS } from '../../constants/appConstants';
+import { LiveModelWarningModal } from '../modals/LiveModelWarningModal';
 
 interface ModelVoiceSettingsProps {
   modelId: string;
@@ -72,6 +73,7 @@ export const ModelVoiceSettings: React.FC<ModelVoiceSettingsProps> = (props) => 
   const { t: i18n } = useI18n();
 
   const [isSystemPromptExpanded, setIsSystemPromptExpanded] = useState(false);
+  const [pendingLiveModelId, setPendingLiveModelId] = useState<string | null>(null);
   const skipNextPromptBlurCommitRef = useRef(false);
 
   // Local state for the large textarea to prevent re-render lag and IME issues
@@ -120,10 +122,22 @@ export const ModelVoiceSettings: React.FC<ModelVoiceSettingsProps> = (props) => 
 
   const handleModelIdChange = useCallback(
     (id: string) => {
+      if (id !== modelId && getModelCapabilities(id).isNativeAudioModel) {
+        setPendingLiveModelId(id);
+        return;
+      }
+
       setModelId(id);
     },
-    [setModelId],
+    [modelId, setModelId],
   );
+
+  const handleConfirmLiveModel = useCallback(() => {
+    if (pendingLiveModelId) {
+      setModelId(pendingLiveModelId);
+    }
+    setPendingLiveModelId(null);
+  }, [pendingLiveModelId, setModelId]);
 
   const handleOpenExpand = () => {
     // Sync current local edits before opening the separate editor modal
@@ -140,6 +154,7 @@ export const ModelVoiceSettings: React.FC<ModelVoiceSettingsProps> = (props) => 
   const capabilities = getModelCapabilities(modelId);
   const isNativeAudio = capabilities.isNativeAudioModel;
   const supportsUltraHighResolution = capabilities.isGemini3 || modelId.toLowerCase().includes('gemini-robotics-er');
+  const pendingLiveModel = availableModels.find((model) => model.id === pendingLiveModelId);
 
   return (
     <div className="space-y-8">
@@ -338,6 +353,13 @@ export const ModelVoiceSettings: React.FC<ModelVoiceSettingsProps> = (props) => 
         ttsVoice={ttsVoice}
         setTtsVoice={setTtsVoice}
         t={t}
+      />
+
+      <LiveModelWarningModal
+        isOpen={pendingLiveModelId !== null}
+        modelName={pendingLiveModel?.name}
+        onClose={() => setPendingLiveModelId(null)}
+        onConfirm={handleConfirmLiveModel}
       />
     </div>
   );
