@@ -15,13 +15,12 @@ const HOP_BY_HOP_HEADERS = new Set([
   'transfer-encoding',
   'upgrade',
 ]);
-const STRIPPED_PROXY_REQUEST_HEADERS = new Set([
-  ...HOP_BY_HOP_HEADERS,
-  'accept-encoding',
-  'authorization',
-  'content-length',
-  'cookie',
-  'host',
+const ALLOWED_PROXY_REQUEST_HEADERS = new Set([
+  'accept',
+  'content-type',
+  'x-goog-api-client',
+  'x-goog-api-key',
+  'x-server-timeout',
 ]);
 const STRIPPED_PROXY_RESPONSE_HEADERS = new Set([...HOP_BY_HOP_HEADERS, 'content-encoding', 'content-length']);
 
@@ -106,6 +105,10 @@ function resolveRequestApiKey(request: IncomingMessage, serverApiKey?: string): 
   return browserApiKey?.trim() ?? '';
 }
 
+function isAllowedProxyRequestHeader(name: string): boolean {
+  return ALLOWED_PROXY_REQUEST_HEADERS.has(name) || name.startsWith('x-goog-upload-');
+}
+
 function buildProxyHeaders(request: IncomingMessage, apiKey: string): Headers {
   const headers = new Headers();
   const connectionManagedHeaders = getConnectionManagedHeaders(
@@ -118,7 +121,11 @@ function buildProxyHeaders(request: IncomingMessage, apiKey: string): Headers {
     }
 
     const normalizedName = name.toLowerCase();
-    if (STRIPPED_PROXY_REQUEST_HEADERS.has(normalizedName) || connectionManagedHeaders.has(normalizedName)) {
+    if (
+      HOP_BY_HOP_HEADERS.has(normalizedName) ||
+      connectionManagedHeaders.has(normalizedName) ||
+      !isAllowedProxyRequestHeader(normalizedName)
+    ) {
       continue;
     }
 

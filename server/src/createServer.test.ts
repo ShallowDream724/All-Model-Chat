@@ -115,6 +115,7 @@ describe('createServer', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          'x-goog-api-client': 'google-genai-sdk/test',
           'x-client-header': 'present',
         },
         body: JSON.stringify({ prompt: 'hello' }),
@@ -134,10 +135,11 @@ describe('createServer', () => {
     expect(upstreamRequests[0].url).toBe('/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse');
     expect(upstreamRequests[0].body).toBe(JSON.stringify({ prompt: 'hello' }));
     expect(upstreamRequests[0].headers['x-goog-api-key']).toBe('server-key');
-    expect(upstreamRequests[0].headers['x-client-header']).toBe('present');
+    expect(upstreamRequests[0].headers['x-goog-api-client']).toBe('google-genai-sdk/test');
+    expect(upstreamRequests[0].headers['x-client-header']).toBeUndefined();
   });
 
-  it('filters hop-by-hop and sensitive request headers before proxying', async () => {
+  it('only proxies documented Gemini request headers', async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
       return new Response('proxied', { status: 202 });
     });
@@ -161,7 +163,21 @@ describe('createServer', () => {
           authorization: 'Bearer user-token',
           cookie: 'session=abc',
           'accept-encoding': 'gzip',
+          'x-forwarded-for': '203.0.113.10',
+          'x-real-ip': '203.0.113.11',
+          'cf-connecting-ip': '203.0.113.12',
+          'cf-ipcountry': 'US',
+          origin: 'https://app.example',
+          referer: 'https://app.example/chat',
+          'accept-language': 'zh-CN,zh;q=0.9',
           'x-client-header': 'present',
+          'x-goog-api-client': 'google-genai-sdk/test',
+          'x-server-timeout': '90',
+          'x-goog-upload-protocol': 'resumable',
+          'x-goog-upload-command': 'upload, finalize',
+          'x-goog-upload-header-content-length': '8388608',
+          'x-goog-upload-header-content-type': 'application/pdf',
+          'x-goog-upload-offset': '0',
         },
       });
 
@@ -197,13 +213,27 @@ describe('createServer', () => {
     }
 
     expect(headers.get('content-type')).toBe('application/json');
-    expect(headers.get('x-client-header')).toBe('present');
+    expect(headers.get('x-goog-api-client')).toBe('google-genai-sdk/test');
+    expect(headers.get('x-server-timeout')).toBe('90');
+    expect(headers.get('x-goog-upload-protocol')).toBe('resumable');
+    expect(headers.get('x-goog-upload-command')).toBe('upload, finalize');
+    expect(headers.get('x-goog-upload-header-content-length')).toBe('8388608');
+    expect(headers.get('x-goog-upload-header-content-type')).toBe('application/pdf');
+    expect(headers.get('x-goog-upload-offset')).toBe('0');
     expect(headers.get('x-goog-api-key')).toBe('server-key');
+    expect(headers.get('x-client-header')).toBeNull();
     expect(headers.get('connection')).toBeNull();
     expect(headers.get('te')).toBeNull();
     expect(headers.get('authorization')).toBeNull();
     expect(headers.get('cookie')).toBeNull();
     expect(headers.get('accept-encoding')).toBeNull();
+    expect(headers.get('x-forwarded-for')).toBeNull();
+    expect(headers.get('x-real-ip')).toBeNull();
+    expect(headers.get('cf-connecting-ip')).toBeNull();
+    expect(headers.get('cf-ipcountry')).toBeNull();
+    expect(headers.get('origin')).toBeNull();
+    expect(headers.get('referer')).toBeNull();
+    expect(headers.get('accept-language')).toBeNull();
   });
 
   it('uses the browser-provided Gemini API key for proxy requests when no server key is configured', async () => {
