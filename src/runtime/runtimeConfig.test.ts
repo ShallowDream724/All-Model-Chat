@@ -66,7 +66,7 @@ describe('runtimeConfig', () => {
     const projectRoot = path.resolve(__dirname, '../..');
     const nginxSource = fs.readFileSync(path.join(projectRoot, 'docker/nginx.conf'), 'utf8');
 
-    expect(nginxSource).toContain('client_max_body_size 128m');
+    expect(nginxSource).toContain('client_max_body_size 16m');
     expect(nginxSource).toContain('location ~* \\.mjs$');
     expect(nginxSource).toContain('application/javascript mjs');
   });
