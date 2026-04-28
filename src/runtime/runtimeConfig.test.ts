@@ -51,12 +51,14 @@ describe('runtimeConfig', () => {
     expect(runtimeConfigSource).not.toContain('/api/live-token');
   });
 
-  it('defaults Docker runtime config to BYOK instead of server-managed credentials', () => {
+  it('defaults Docker runtime config to server-managed /api/gemini proxy credentials', () => {
     const projectRoot = path.resolve(__dirname, '../..');
     const webEntrypointSource = fs.readFileSync(path.join(projectRoot, 'docker/web-entrypoint.sh'), 'utf8');
     const composeSource = fs.readFileSync(path.join(projectRoot, 'docker-compose.yml'), 'utf8');
 
-    expect(webEntrypointSource).toContain('RUNTIME_SERVER_MANAGED_API:-false');
-    expect(composeSource).toContain('RUNTIME_SERVER_MANAGED_API:-false');
+    expect(webEntrypointSource).toContain('RUNTIME_SERVER_MANAGED_API:-true');
+    expect(webEntrypointSource).toContain('RUNTIME_API_PROXY_URL:-/api/gemini');
+    expect(composeSource).toContain('RUNTIME_SERVER_MANAGED_API:-true');
+    expect(composeSource).toContain('RUNTIME_API_PROXY_URL:-/api/gemini');
   });
 });
