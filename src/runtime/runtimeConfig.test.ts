@@ -61,4 +61,13 @@ describe('runtimeConfig', () => {
     expect(composeSource).toContain('RUNTIME_SERVER_MANAGED_API:-true');
     expect(composeSource).toContain('RUNTIME_API_PROXY_URL:-/api/gemini');
   });
+
+  it('configures the Docker web proxy for Files API uploads and module workers', () => {
+    const projectRoot = path.resolve(__dirname, '../..');
+    const nginxSource = fs.readFileSync(path.join(projectRoot, 'docker/nginx.conf'), 'utf8');
+
+    expect(nginxSource).toContain('client_max_body_size 128m');
+    expect(nginxSource).toContain('location ~* \\.mjs$');
+    expect(nginxSource).toContain('application/javascript mjs');
+  });
 });
