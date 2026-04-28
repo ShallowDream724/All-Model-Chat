@@ -1,6 +1,10 @@
 import type { GoogleGenAI, Part } from '@google/genai';
 import type { AppSettings } from '../../types';
-import { DEFAULT_GEMINI_API_BASE_URL, normalizeGeminiApiBaseUrl } from '../../utils/apiProxyUrl';
+import {
+  DEFAULT_GEMINI_API_BASE_URL,
+  normalizeGeminiApiBaseUrl,
+  resolveGeminiApiBaseUrl,
+} from '../../utils/apiProxyUrl';
 import { dbService } from '../../utils/db';
 import { logService } from '../logService';
 
@@ -39,7 +43,7 @@ export const getClient = async (
     const mergedHttpOptions = httpOptions ? { ...httpOptions } : undefined;
 
     if (baseUrl && baseUrl.trim().length > 0) {
-      const sanitizedBaseUrl = normalizeGeminiApiBaseUrl(baseUrl);
+      const sanitizedBaseUrl = resolveGeminiApiBaseUrl(baseUrl);
       if (mergedHttpOptions) {
         mergedHttpOptions.baseUrl = sanitizedBaseUrl;
       } else {
@@ -110,14 +114,14 @@ export const getConfiguredApiBaseUrl = async (): Promise<string> => {
   const settings = await dbService.getAppSettings();
   const configuredBaseUrl = settings ? resolveConfiguredBaseUrl(settings) : null;
 
-  return normalizeGeminiApiBaseUrl(configuredBaseUrl ?? DEFAULT_GEMINI_API_BASE_URL);
+  return resolveGeminiApiBaseUrl(configuredBaseUrl ?? DEFAULT_GEMINI_API_BASE_URL);
 };
 
 export const getConfiguredProxyBaseUrl = async (): Promise<string | null> => {
   const settings = await dbService.getAppSettings();
   const configuredBaseUrl = settings ? resolveConfiguredBaseUrl(settings) : null;
 
-  return configuredBaseUrl ? normalizeGeminiApiBaseUrl(configuredBaseUrl) : null;
+  return configuredBaseUrl ? resolveGeminiApiBaseUrl(configuredBaseUrl) : null;
 };
 
 const hasPerPartMediaResolution = (parts: Part[] = []): boolean =>

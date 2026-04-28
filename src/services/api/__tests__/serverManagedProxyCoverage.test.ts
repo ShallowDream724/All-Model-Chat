@@ -207,7 +207,7 @@ class FakeXMLHttpRequest {
 const expectEveryClientToUseProxy = () => {
   expect(clientConfigs.length).toBeGreaterThan(0);
   clientConfigs.forEach((config) => {
-    expect(config.httpOptions?.baseUrl).toBe('/api/gemini');
+    expect(config.httpOptions?.baseUrl).toBe('http://localhost/api/gemini');
     expect(config.httpOptions?.baseUrl).not.toContain('generativelanguage.googleapis.com');
   });
 };
@@ -271,9 +271,9 @@ describe('server-managed /api/gemini proxy coverage', () => {
 
     expectEveryClientToUseProxy();
     expect(apiClientRequests[0].path).toBe('upload/v1beta/files');
-    expect(apiClientRequests[0].httpOptions?.baseUrl).toBe('/api/gemini');
+    expect(apiClientRequests[0].httpOptions?.baseUrl).toBe('http://localhost/api/gemini');
     expect(uploadRequests).toHaveLength(1);
-    expect(uploadRequests[0].url).toContain('/api/gemini/upload/v1beta/files/session-1');
+    expect(uploadRequests[0].url).toBe('http://localhost/api/gemini/upload/v1beta/files/session-1');
     expect(uploadRequests[0].url).not.toContain('generativelanguage.googleapis.com');
   });
 });

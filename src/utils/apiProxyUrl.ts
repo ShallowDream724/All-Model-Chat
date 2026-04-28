@@ -9,6 +9,21 @@ export const normalizeGeminiApiBaseUrl = (baseUrl: string): string => {
   return trimmedBaseUrl.replace(GEMINI_API_VERSION_SUFFIX, '');
 };
 
+const getRuntimeOrigin = (): string =>
+  typeof window !== 'undefined'
+    ? window.location.origin
+    : (globalThis as { location: { origin: string } }).location.origin;
+
+export const resolveGeminiApiBaseUrl = (baseUrl: string): string => {
+  const normalizedBaseUrl = normalizeGeminiApiBaseUrl(baseUrl);
+
+  if (/^https?:\/\//i.test(normalizedBaseUrl)) {
+    return normalizedBaseUrl;
+  }
+
+  return normalizeGeminiApiBaseUrl(new URL(normalizedBaseUrl, getRuntimeOrigin()).toString());
+};
+
 export const buildGeminiRequestPreviewUrl = (
   baseUrl: string,
   modelId: string,

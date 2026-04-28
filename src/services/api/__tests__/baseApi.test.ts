@@ -40,6 +40,7 @@ vi.mock('../../../utils/appUtils', () => ({
 
 import { GoogleGenAI } from '@google/genai';
 import { getClient, getApiClient, getConfiguredApiClient, getLiveApiClient } from '../baseApi';
+import { getConfiguredApiBaseUrl, getConfiguredProxyBaseUrl } from '../apiClient';
 import { dbService } from '../../../utils/db';
 
 // ── getClient ──
@@ -83,6 +84,14 @@ describe('getClient', () => {
         httpOptions: { baseUrl: 'https://proxy.example.com/gemini' },
       }),
     );
+  });
+
+  it('resolves same-origin proxy paths before passing them to the SDK', async () => {
+    await getClient('key', '/api/gemini/');
+    expect(GoogleGenAI).toHaveBeenCalledWith({
+      apiKey: 'key',
+      httpOptions: { baseUrl: 'http://localhost/api/gemini' },
+    });
   });
 
   it('merges proxy baseUrl into existing httpOptions', async () => {
@@ -155,6 +164,23 @@ describe('getConfiguredApiClient', () => {
     // baseUrl should not be in the config
     const callArgs = vi.mocked(GoogleGenAI).mock.calls[0][0] as MockGoogleGenAIConfig;
     expect(callArgs.httpOptions?.baseUrl).toBeUndefined();
+  });
+});
+
+describe('configured Gemini base URLs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('resolves same-origin proxy paths for low-level API requests', async () => {
+    vi.mocked(dbService.getAppSettings).mockResolvedValue({
+      useCustomApiConfig: true,
+      useApiProxy: true,
+      apiProxyUrl: '/api/gemini/',
+    } as StoredAppSettings);
+
+    await expect(getConfiguredApiBaseUrl()).resolves.toBe('http://localhost/api/gemini');
+    await expect(getConfiguredProxyBaseUrl()).resolves.toBe('http://localhost/api/gemini');
   });
 });
 
