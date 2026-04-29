@@ -55,6 +55,7 @@ describe('vite.config runtime ownership', () => {
     const config = fs.readFileSync(viteConfigPath, 'utf8');
 
     expect(config).toMatch(/globIgnores:\s*\[[\s\S]*pyodide/i);
+    expect(config).toContain("'**/pdf.worker.min.mjs'");
   });
 
   it('keeps html export code behind a runtime import instead of a forced vendor chunk', () => {

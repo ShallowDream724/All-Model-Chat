@@ -208,6 +208,7 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,png,svg,mjs,json,woff,woff2,ttf}'],
           globIgnores: [
             '**/runtime-config.js',
+            '**/pdf.worker.min.mjs',
             '**/pyodide/**',
             '**/assets/pyodide-runtime-*.js',
             '**/assets/pdfjs-vendor-*.js',

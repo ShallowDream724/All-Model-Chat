@@ -280,7 +280,7 @@ describe('SelectedFileDisplay', () => {
       );
     });
     await vi.waitFor(() => {
-      expect(pdfjs.GlobalWorkerOptions.workerSrc).toBe('/pdf.worker.min.mjs');
+      expect(pdfjs.GlobalWorkerOptions.workerSrc).toBe('/pdf.worker.min.mjs?v=amc-pdf-worker-20260429');
     });
   });
 

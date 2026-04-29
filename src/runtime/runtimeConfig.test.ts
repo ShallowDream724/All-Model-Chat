@@ -67,6 +67,8 @@ describe('runtimeConfig', () => {
     const nginxSource = fs.readFileSync(path.join(projectRoot, 'docker/nginx.conf'), 'utf8');
 
     expect(nginxSource).toContain('client_max_body_size 16m');
+    expect(nginxSource).toContain('location = /pdf.worker.min.mjs');
+    expect(nginxSource).toContain('Cache-Control "no-store"');
     expect(nginxSource).toContain('location ~* \\.mjs$');
     expect(nginxSource).toContain('application/javascript mjs');
   });

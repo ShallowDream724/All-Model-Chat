@@ -29,7 +29,8 @@ registerRoute(
   ({ request, url }) =>
     url.origin === self.location.origin &&
     ['style', 'script', 'worker', 'font', 'image'].includes(request.destination) &&
-    url.pathname !== '/runtime-config.js',
+    url.pathname !== '/runtime-config.js' &&
+    url.pathname !== '/pdf.worker.min.mjs',
   new StaleWhileRevalidate({
     cacheName: 'static-assets',
   }),
@@ -37,6 +38,7 @@ registerRoute(
 
 registerRoute(
   ({ url }) =>
-    url.origin === self.location.origin && (url.pathname === '/runtime-config.js' || url.pathname.startsWith('/api/')),
+    url.origin === self.location.origin &&
+    (url.pathname === '/runtime-config.js' || url.pathname === '/pdf.worker.min.mjs' || url.pathname.startsWith('/api/')),
   new NetworkOnly(),
 );
