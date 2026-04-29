@@ -29,6 +29,11 @@ export const useFilePolling = ({
   const pollingInFlight = useRef<Set<string>>(new Set());
   const pollingFailures = useRef<Map<string, number>>(new Map());
   const lastPollingAttempt = useRef<Map<string, number>>(new Map());
+  const latestAppSettings = useRef(appSettings);
+  const latestChatSettings = useRef(currentChatSettings);
+
+  latestAppSettings.current = appSettings;
+  latestChatSettings.current = currentChatSettings;
 
   useEffect(() => {
     const intervals = pollingIntervals.current;
@@ -89,7 +94,9 @@ export const useFilePolling = ({
 
           // Optimize polling by not rotating keys unnecessarily.
           // We reuse the current index/key to avoid burning through rotation turns on poll ticks.
-          const keyResult = getKeyForRequest(appSettings, currentChatSettings, { skipIncrement: true });
+          const keyResult = getKeyForRequest(latestAppSettings.current, latestChatSettings.current, {
+            skipIncrement: true,
+          });
           if ('error' in keyResult) {
             logService.error(`Polling for ${fileApiName} stopped: ${keyResult.error}`);
             setSelectedFiles((prev) =>
@@ -137,9 +144,15 @@ export const useFilePolling = ({
       }
     }
 
-    // Cleanup on unmount
+  }, [selectedFiles, setSelectedFiles]);
+
+  useEffect(() => {
     return () => {
-      intervals.forEach((intervalId) => window.clearInterval(intervalId));
+      pollingIntervals.current.forEach((intervalId) => window.clearInterval(intervalId));
+      pollingIntervals.current.clear();
+      pollingInFlight.current.clear();
+      pollingFailures.current.clear();
+      lastPollingAttempt.current.clear();
     };
-  }, [selectedFiles, appSettings, currentChatSettings, setSelectedFiles]);
+  }, []);
 };
